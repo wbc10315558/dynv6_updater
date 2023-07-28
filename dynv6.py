@@ -46,6 +46,7 @@ def case_multiple_ip(pool):
     return pool[choice]
 
 def load_configuration_file(filepath):
+    """Open file from disk and get information from it."""
     try:
         file = open(filepath)
         config = json_load(file.read())
@@ -64,6 +65,7 @@ def load_configuration_file(filepath):
     return token, hostname, ip
 
 def case_no_config_file():
+    """If the configuration file is not specified, the program will ask you to provide information."""
     print("\nConfiguration file not specified, changing to interactive mode.\n")
     tk = input("HTTP Token: ")
     hstn = input("Configuring zone: ")
@@ -73,6 +75,7 @@ def case_no_config_file():
     return tk, hstn, ipa
 
 def get_ipv6_address(mode):
+    """Using get_global_ip_address to scan all the IPs on your device,and choose one to be uploaded."""
     print("\nGetting current IPv6 address...")
     ipv6_pool = get_global_ip_address()[1]
     if mode == '' and len(ipv6_pool) >= 2:
