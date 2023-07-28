@@ -50,6 +50,8 @@ def load_configuration_file(filepath):
         file = open(filepath)
         config = json_load(file.read())
         token, hostname, ip = config["token"], config["hostname"], config['ip']
+        if ip in ['auto', 'default', '']:
+            ip = get_ipv6_address(ip)
         file.close()
     except FileNotFoundError:
         exit(f"Can't open {filepath}: No such file or directory.")
@@ -66,16 +68,37 @@ def case_no_config_file():
     tk = input("HTTP Token: ")
     hstn = input("Configuring zone: ")
     ipa = input("Destination IP address (leave it empty to use the current address by default): ")
+    if ipa in ['auto', 'default', '']:
+        ipa = get_ipv6_address(ipa)
     return tk, hstn, ipa
 
-def get_ipv6_address(auto=False):
-    print("\nGetting IPv6 address...")
+def get_ipv6_address(mode):
+    print("\nGetting current IPv6 address...")
     ipv6_pool = get_global_ip_address()[1]
-    if not auto and len(ipv6_pool) >= 2:
+    if mode == '' and len(ipv6_pool) >= 2:
         ipv6_address = case_multiple_ip(ipv6_pool)
     else:
         ipv6_address = ipv6_pool[0]
     return ipv6_address
 
-if len(argv) < 2:
-    pass
+def make_url(token, hostname, ipv6_address):
+    url = f"http://dynv6.com/api/update?hostname={hostname}&ipv6={ipv6_address}&token={token}"
+    return url
+
+def make_request(url):
+    response = request("get", url)
+    if response.status_code == 200:
+        print(response.text)
+
+def main():
+    if len(argv) < 2:
+        make_request(make_url(*case_no_config_file()))
+    else:
+        if ('-h' in argv) or ('--help' in argv):
+            print(f"Usage: python {argv[0]} [Configuration file path]")
+        elif len(argv) == 2:
+            make_request(make_url(*load_configuration_file("config.json")))
+        else:
+            print("Invalid arguments.")
+
+main()
