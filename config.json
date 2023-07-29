@@ -1,5 +1,5 @@
 {
-    "token": "xxxxxxxxxxxxxxxxxxxxxxxxx",
-    "hostname": "www.example.com",
-    "ip": ""
+    "token":"your http token",
+    "hostname":"example.dynv6.net",
+    "ip":"auto"
 }
