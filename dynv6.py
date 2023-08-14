@@ -5,14 +5,9 @@ from requests import request
 from json import loads as json_load
 from json.decoder import JSONDecodeError
 
-# Created by wbc
-# This tool aims to help dynv6 users to update ipv6 address to the dynv6 name server.
-# You can either create a configuration file that contains information or just typing it
-# when the program needs you to provide information.
 
-# 获取公网IP地址
 def get_global_ip_address():
-    """Get all global IP addresses"""
+    """获取公网IP地址"""
     global_ipv4: list[str] = []
     global_ipv6: list[str] = []
     for ip_tuple in getaddrinfo(gethostname(), 80):
@@ -28,44 +23,41 @@ def get_global_ip_address():
                 global_ipv6.append(str(ip))
     return global_ipv4, global_ipv6
 
-# 加载配置文件参数
 def load_configuration_file(filepath):
-    """Open file from disk and get information from it."""
+    """加载配置文件"""
     try:
-        file = open(filepath)
+        file = open(filepath,encoding='utf-8')
         config = json_load(file.read())
-        token, hostname, ip = config["token"], config["hostname"], config['ip']
+        token, hostname, ip = config["token"], config["hostname"], config['ip']#这里需要切换成所有的检查参数函数
         if ip in ['auto', 'default', '']:
             ip = get_ipv6_address(ip)
         else:
             check_ipv6(ip)
         file.close()
     except FileNotFoundError:
-        exit(f"Can't open {filepath}: No such file or directory.")
+        exit("无法打开 {}：没有哪个文件和目录".format(filepath))
     except UnicodeError:
-        exit(f"Can't read {filepath}: File encoding must be utf-8.")
+        exit("无法读取 {}：配置文件编码错误（仅支持UTF-8编码）".format(filepath))
     except JSONDecodeError:
-        exit(f"Can't read {filepath}: A configuration file must follow JSON standard.")
+        exit("无法读取 {}：配置文件必须符合JSON格式".format(filepath))
     except KeyError:
-        exit(f"Can't enable {filepath}: Missing key information.")
+        exit("无法读取 {}：缺少参数{}".format(filepath,missing_arguments))
     return token, hostname, ip
 
-# 当无配置文件时主动引导用户进行配置
 def case_no_config_file():
-    """If the configuration file is not specified, the program will ask you to provide information."""
+    """当无配置文件时主动引导用户进行配置"""
     print("\nConfiguration file not specified, changing to interactive mode.\n")
-    tk = input("HTTP Token: ")
-    hstn = input("Configuring zone: ")
+    token = input("HTTP Token: ")
+    hostname = input("Configuring zone: ")
     ip = input("Destination IP address (leave it empty to use the current address by default): ")
     if ip in ['auto', 'default', '']:
         ip = get_ipv6_address(ip)
     else:
         check_ipv6(ip)
-    return tk, hstn, ip
+    return token, hostname, ip
 
-# 从公网IP地址中获取所需的IPv6地址
 def get_ipv6_address(mode):
-    """Using get_global_ip_address to scan all the IPs on your device,and choose one to be uploaded."""
+    """从公网IP地址中获取所需的IPv6地址"""
     print("\nGetting current IPv6 address...")
     ipv6_pool = get_global_ip_address()[1]
     if mode == '' and len(ipv6_pool) >= 2:
@@ -75,8 +67,8 @@ def get_ipv6_address(mode):
     print(f"Using address: [{ipv6_address}]")
     return ipv6_address
 
-# 检查配置文件中或用户提供的IPv6地址是否合法以及是否能在公网上使用
 def check_ipv6(addr):
+    """检查配置文件中或用户提供的IPv6地址是否合法以及是否能在公网上使用"""
     try:
         ip_object=IPv6Address(addr)
         if not ip_object.is_global:
@@ -84,9 +76,8 @@ def check_ipv6(addr):
     except AddressValueError:
         exit("Invalid IPv6 address.")
 
-# 当检测到本机有多个公网IPv6地址时，引导用户选择其一
 def case_multiple_ip(pool):
-    """When multiple IPv6 addresses are found, call this function to let user choose one."""
+    """当检测到本机有多个公网IPv6地址时，引导用户选择其一"""
     print(
         '\nMultiple IPv6 Addresses were found on your device.\n'
         "We strongly recommend you to choose the temporary address to avoid MAC address exposure."
@@ -103,13 +94,13 @@ def case_multiple_ip(pool):
             break
     return pool[choice]
 
-# 根据提供的信息，生成用于访问的地址
 def make_url(token, hostname, ipv6_address):
+    """根据提供的信息，生成用于访问的网址"""
     url = f"http://dynv6.com/api/update?hostname={hostname}&ipv6={ipv6_address}&token={token}"
     return url
 
-# 在dynv6.com上执行更新解析规则的操作，并对将执行结果反馈给用户
 def make_request(url:str):
+    """在dynv6.com上执行更新解析规则的操作，并对将执行结果反馈给用户"""
     print("\nSending HTTP request to dynv6.com...\n")
     response = request("get", url)
     if response.status_code == 200:
@@ -122,8 +113,8 @@ def make_request(url:str):
     else:
         exit(f"Status: {response.status_code}\nUnknown error, please check your information or try again later.")
 
-# 检测形式参数，并对整个程序的工作模式进行决策
 def main():
+    """程序入口"""
     if len(argv) < 2:
         make_request(make_url(*case_no_config_file()))
     else:
@@ -134,4 +125,5 @@ def main():
         else:
             exit("Invalid arguments.")
 
-main()
+if __name__ == "__main__":
+    main()
